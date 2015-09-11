@@ -146,6 +146,9 @@ typedef struct {
   uint8_t LAND_COMPLETED: 1;
   uint8_t LAND_IN_PROGRESS: 1;
 #endif
+#if defined (VBAT) && defined(VBAT_ALAND)
+  uint8_t VBAT_AUTOLAND : 1;
+#endif
 } flags_struct_t;
 
 typedef struct {
