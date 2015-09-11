@@ -168,6 +168,11 @@ int16_t  sonarAlt;
 int16_t  BaroPID = 0;
 int16_t  errorAltitudeI = 0;
 
+#if defined (VBAT) && defined (VBAT_ALAND)
+uint8_t  BatAlarm_Land = 0;
+int16_t  vbatland_count = 0;
+#endif
+
 // **************
 // gyro+acc IMU
 // **************
@@ -771,6 +776,19 @@ void go_arm() {
       magHold = att.heading;
       #if defined(VBAT)
         if (analog.vbat > NO_VBAT) vbatMin = analog.vbat;
+		#if defined (VBAT_ALAND)
+		if (analog.vbat < conf.vbatlevel_warn2) 
+		{ 
+			f.ARMED = 0;
+			if (alarmArray[1] == 0)
+				alarmArray[1] = 1;
+			else if (alarmArray[1] == 1)
+				alarmArray[1] = 0;
+		}
+		else {
+			vbatland_count = 1;
+		}
+      #endif
       #endif
       #ifdef ALTITUDE_RESET_ON_ARM
         #if BARO
@@ -1141,6 +1159,28 @@ void loop () {
 
     if (f.ARMED ) {                       //Check GPS status and armed
       //TODO: implement f.GPS_Trusted flag, idea from Dramida - Check for degraded HDOP and sudden speed jumps
+#if defined (VBAT) && defined (VBAT_ALAND)
+		if (analog.vbat <= conf.vbatlevel_warn2 && BatAlarm_Land == 0) // If battery reach WARN2 start process
+		{
+			vbatland_count++;
+			if (vbatland_count >= 60 * VBAT_ALAND_CNT) //compare counter with value choosen in config.h
+			{
+				f.VBAT_AUTOLAND = 1; // yes, start autoland	
+				BatAlarm_Land = 1;
+			}
+		}
+		if (f.VBAT_AUTOLAND == 1){ // Land start
+			vbatland_count = 0;
+			f.GPS_mode = GPS_MODE_HOLD;
+			f.GPS_BARO_MODE = true;
+			GPS_set_next_wp(&GPS_coord[LAT], &GPS_coord[LON], &GPS_coord[LAT], &GPS_coord[LON]);
+			set_new_altitude(alt.EstAlt);
+			NAV_state = NAV_STATE_LAND_START;
+			f.VBAT_AUTOLAND = 0;
+		}
+#endif
+
+      
       if (f.GPS_FIX) {
         if (GPS_numSat >5 ) {
           if (prv_gps_modes != gps_modes_check) {                           //Check for change since last loop

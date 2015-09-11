@@ -100,6 +100,11 @@ void alarmHandler(void){
     else alarmArray[ALRM_FAC_RUNTIME] = ALRM_LVL_OFF;
   #endif
   
+#if defined (VBAT) && defined (VBAT_ALAND) && !GPS 
+#error "Unfortunatly GPS is needed for using VBAT_AUTOLAND"
+#error "Malheuresement un GPS est necessaire pour utiliser la fonction VBAT_AUTOLAND"
+#endif
+
   #if defined(VBAT)
     if (vbatMin < conf.vbatlevel_crit) alarmArray[ALRM_FAC_VBAT] = ALRM_LVL_VBAT_CRIT;
     else if ( (analog.vbat > conf.vbatlevel_warn1)  || (NO_VBAT > analog.vbat)) alarmArray[ALRM_FAC_VBAT] = ALRM_LVL_OFF;
@@ -692,12 +697,16 @@ void vario_output(uint16_t d, uint8_t up) {
     uint8_t d1 = d/2;
   #endif
   if (d1<1) d1 = 1;
+  #if defined (LCD_CONF) || defined(LCD_TELEMETRY) || defined(HAS_LCD)
   for (uint8_t i=0; i<d1; i++) LCDprint(s1);
+  #endif
   #ifndef VARIOMETER_SINGLE_TONE
     uint8_t s2 = (up ? 0x07 : 0x05);
     uint8_t d2 = d-d1;
     if (d2<1) d2 = 1;
+  #if defined (LCD_CONF) || defined(LCD_TELEMETRY) || defined(HAS_LCD)
     for (uint8_t i=0; i<d2; i++) LCDprint(s2);
+  #endif
   #endif
 }
 
